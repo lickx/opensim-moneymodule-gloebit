@@ -164,6 +164,8 @@ namespace Gloebit.GloebitMoneyModule
         
         // OpenSim Economic Data
         private bool m_sellEnabled = false;     // If not true, Object Buy txns won't work
+        private bool m_sellNonfreeToHGEnabled = false;     // If not true, non-zero Object Buy txns won't work with hypergridders
+        private bool m_sellFreebieToHGEnabled = false;     // If not true, freebie Object Buy txns won't work with hypergridders
         private float EnergyEfficiency = 0f;
         private int ObjectCount = 0;
         private int PriceEnergyUnit = 0;
@@ -353,6 +355,8 @@ namespace Gloebit.GloebitMoneyModule
                 PriceParcelRent = config.GetInt("PriceParcelRent", 1);
                 PriceGroupCreate = config.GetInt("PriceGroupCreate", -1);
                 m_sellEnabled = config.GetBoolean("SellEnabled", true);
+                m_sellNonfreeToHGEnabled = config.GetBoolean("SellNonfreeToHGEnabled", true);
+                m_sellFreebieToHGEnabled = config.GetBoolean("SellFreebieToHGEnabled", true);
             }
             
             /********** [Gloebit] ************/
@@ -1462,6 +1466,8 @@ namespace Gloebit.GloebitMoneyModule
             LAND_VALIDATION_FAILED,
             EXISTING_TRANSACTION_ID,
             GROUP_OWNED,
+            BUYING_NONFREE_HG_DISABLED,
+            BUYING_FREEBIE_HG_DISABLED,
         }
 
         #endregion // GMM Transaction enums
@@ -2642,6 +2648,27 @@ namespace Gloebit.GloebitMoneyModule
 
             Scene s = LocateSceneClientIn(remoteClient.AgentId);
 
+            IUserManagement umModule = s.RequestModuleInterface<IUserManagement>();
+            bool localuser = true;
+            if (umModule != null) {
+                localuser = umModule.IsLocalGridUser(remoteClient.AgentId);
+            }
+
+            if (!localuser)
+            {
+                if (salePrice > 0 && !m_sellNonfreeToHGEnabled)
+                {
+                    alertUsersTransactionPreparationFailure(TransactionType.USER_BUYS_OBJECT, TransactionPrecheckFailure.BUYING_NONFREE_HG_DISABLED, remoteClient);
+                    return;
+                }
+                else if (salePrice == 0 && !m_sellFreebieToHGEnabled)
+                {
+                    alertUsersTransactionPreparationFailure(TransactionType.USER_BUYS_OBJECT, TransactionPrecheckFailure.BUYING_FREEBIE_HG_DISABLED, remoteClient);
+                    return;
+                }
+            }
+
+
             // The sale information in this event comes from the client, not the server, so we must validate that the
             // data the client sent matches the server.  If not, the data could be out of sync since a recent change
             // or it could be a malicious client, or something was corrupted.  The cause doesn't matter, but we should
@@ -3724,6 +3751,14 @@ namespace Gloebit.GloebitMoneyModule
                         case TransactionPrecheckFailure.BUY_SELL_MODULE_INACCESSIBLE:
                             precheckFailure = "Unable to access IBuySellModule necessary for transferring inventory.";
                             instruction = tryAgainContactOwner;
+                            break;
+                        case TransactionPrecheckFailure.BUYING_NONFREE_HG_DISABLED:
+                            precheckFailure = "Selling non-freebies to hypergridders is disabled.";
+                            instruction = String.Format("If you believe this should be enabled on this region, please contact {0}.", m_contactOwner);
+                            break;
+                        case TransactionPrecheckFailure.BUYING_FREEBIE_HG_DISABLED:
+                            precheckFailure = "Selling freebies to hypergridders is disabled.";
+                            instruction = String.Format("If you believe this should be enabled on this region, please contact {0}.", m_contactOwner);
                             break;
                         default:
                             m_log.ErrorFormat("[GLOEBITMONEYMODULE] alertUsersTransactionPreparationFailure: Unimplemented failure TransactionPrecheckFailure [{0}] TransactionType.", failure, typeID);

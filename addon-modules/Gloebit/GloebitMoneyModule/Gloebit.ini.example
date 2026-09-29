@@ -86,3 +86,9 @@
 ; These two lines added for land sales to work; see mantis 8779
 ;GLBNewHTTPFlow = true
 ;GLBNewLandPassFlow = true
+
+; Set to false if you don't want hypergrid visitors to buy non-free items:
+;SellNonfreeToHGEnabled = true
+
+; Set to false if you don't want hypergrid visitors to buy freebies:
+;SellFreebieToHGEnabled = true
