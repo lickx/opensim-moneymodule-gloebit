@@ -2296,7 +2296,7 @@ namespace Gloebit.GloebitMoneyModule
             {
                 foreach (Scene rs in m_scenel.Values)
                 {
-                    if (rs.RegionInfo.originRegionID == RegionID)
+                    if (rs.RegionInfo.RegionID == RegionID)
                     {
                         return rs;
                     }
@@ -3194,7 +3194,7 @@ namespace Gloebit.GloebitMoneyModule
                     // Needs to happen before we submit because C# can delay wakeup for this synchronous call and
                     // the enact could be received before we know if the submission succeeded.
                     lock(m_landAssetMap) {
-                        m_landAssetMap[txn.TransactionID] = new Object[2]{s.RegionInfo.originRegionID, e};
+                        m_landAssetMap[txn.TransactionID] = new Object[2]{s.RegionInfo.RegionID, e};
                     }
                     bool submission_result = m_apiW.SubmitTransaction(txn, description, descMap, true);
                     // See GloebitAPIWrapper.TransactU2UCompleted and helper messaging functions for error messaging on failure - no action required.
